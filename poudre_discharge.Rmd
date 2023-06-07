@@ -1,0 +1,143 @@
+---
+title: "Analysis of Mean Discharge in a River"
+author: "Greg McKittrick"
+date: "2023-05-08"
+output: html_document
+---
+
+1. Download daily discharge data for 06752260 in Fort Collins, CO from 1990-2023
+
+# Install and load the 'dataRetrieval' package
+```{r setup, include= F}
+#install.packages("dataRetrieval")
+library(dataRetrieval)
+library(tidyverse)
+library(lubridate)
+library(dplyr)
+```
+
+```{r}
+
+discharge_data <- readNWISdv(siteNumber = "06752260",
+                          parameterCd = "00060", 
+                          startDate = "1990-01-01", 
+                          endDate = Sys.Date())%>%
+  addWaterYear(.) %>%
+  select(date = Date,
+         year = waterYear,
+         q_cfs = X_00060_00003)
+```
+
+
+Plot all of the data
+```{r}
+
+p <- ggplot(discharge_data, aes(x = date, y = q_cfs)) +
+  geom_point() +
+  ggtitle(label ="Poudre River Daily discharge", 
+          subtitle = "Fort Collins, CO. 1990 - 2023") +
+  ylab('Q (cfs)') + 
+  xlab('date')
+
+p
+```
+
+Plot last five years of the data
+```{r}
+lastThree <- discharge_data %>%
+  mutate(Month = month(date)) %>%
+  mutate(Day = day(date)) %>%
+  mutate(Year = year(date)) %>% 
+  filter(between(Year, 2018, 2023))
+
+p <- ggplot(lastThree, aes(x = date, y = q_cfs)) +
+  geom_point() +
+  ggtitle(label ="Poudre River Daily discharge", 
+          subtitle = "Fort Collins, CO. 2018 - 2022") +
+  scale_x_date(date_breaks = "2 month", date_labels = "%b")+
+  ylab('Q (cfs)') + 
+  xlab('date')+
+  theme(axis.text.x = element_text(angle = 90, hjust = 1))
+
+p
+```
+
+Plot last year's data
+```{r}
+lastYear <- discharge_data %>%
+  mutate(Month = month(date)) %>%
+  mutate(Day = day(date)) %>%
+  mutate(Year = year(date)) %>% 
+  filter(Year == 2022)
+
+p <- ggplot(lastYear, aes(x = date, y = q_cfs)) +
+  geom_point() +
+  ggtitle(label ="Poudre River Daily discharge", 
+          subtitle = "Fort Collins, CO. 2022") +
+  scale_x_date(date_breaks = "1 month", date_labels = "%b")+
+  ylab('Q (cfs)') + 
+  xlab('date')
+
+p
+```
+
+Plot monthly average of the data for last five years
+```{r}
+monthly_mean <- discharge_data %>%
+  mutate(Month = month(date)) %>%
+  mutate(Day = day(date)) %>%
+  mutate(Year = year(date)) %>% 
+  filter(between(Year, 2018, 2023))#%>% 
+  #group_by(Month) %>%
+  #summarize(MonthlyMean_q = mean(q_cfs, na.rm = T))
+
+p <- ggplot(monthly_mean, aes(x = factor(Month), y = q_cfs)) +
+  geom_boxplot() +
+  ggtitle(label ="Poudre River Monthly average discharge", 
+          subtitle = "Fort Collins, CO. 2022 ") +
+  ylab('mean Q (cfs)') + 
+  xlab('Month')
+
+p
+```
+
+The summertime (June 21 - Sept 21) annual mean of this data.
+```{r}
+summertime_mean <- discharge_data %>%
+  mutate(Month = month(date)) %>%
+  mutate(Day = day(date)) %>%
+  filter((Month == 6 & Day >= 21) |
+           between(Month, 7, 8) |
+           (Month == 9 & Day <= 21)) %>% 
+  group_by(year) %>%
+  summarize(summerTimeMean_q = mean(q_cfs, na.rm = T))
+
+p <- ggplot(summertime_mean, aes(x = year, y = summerTimeMean_q)) +
+  geom_point() +
+  ggtitle(label ="Poudre River Summer time average discharge", 
+          subtitle = "Fort Collins, CO. June 21 - Sept 21") +
+  ylab('Summer Time mean Q (cfs)') + 
+  xlab('Year')
+
+p
+
+```
+
+Plot this year's data
+```{r}
+thisYear <- discharge_data %>%
+  mutate(Month = month(date)) %>%
+  mutate(Day = day(date)) %>%
+  mutate(Year = year(date)) %>% 
+  filter(Year == 2023)
+
+p <- ggplot(thisYear, aes(x = date, y = q_cfs)) +
+  geom_point() +
+  ggtitle(label ="Poudre River Daily discharge", 
+          subtitle = "Fort Collins, CO. 2023") +
+  scale_x_date(date_breaks = "1 month", date_labels = "%b")+
+  ylab('Q (cfs)') + 
+  xlab('date')
+
+p
+```
